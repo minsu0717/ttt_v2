@@ -1,7 +1,12 @@
-from django.urls import path
+from django.urls import path, URLPattern
 
-from . import views
+from recom.views import MovieList
+from recom.views import MovieInfo
+from recom.views import MovieSearch
+
 
 urlpatterns = [
-    path('',views.Movie2_view, name = 'index')
+    path('movielist/',MovieList.as_view()),
+    path('5/<int:movie_id>/',MovieInfo.as_view()),
+    path('1/',MovieSearch.as_view()),
 ]
