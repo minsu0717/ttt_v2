@@ -1,8 +1,8 @@
 from django.db import models
 
 class Favorite(models.Model):
-    user = models.ForeignKey('User', models.DO_NOTHING)
-    movie = models.ForeignKey('Movie2', models.DO_NOTHING)
+    user = models.ForeignKey('User', on_delete=models.CASCADE)
+    movie = models.ForeignKey('Movie2', on_delete=models.CASCADE)
     created_at = models.DateTimeField(blank=True, null=True)
     updated_at = models.DateTimeField(blank=True, null=True)
 

@@ -9,7 +9,7 @@ from .models import Movie2,User,Favorite
 from django.views import View
 from django.http import JsonResponse
 from rest_framework.views import APIView
-from .serializers import MovieInfoSerializer, MovieSearchSerializer, MovieSerializer, UserId, UserloginSerializer
+from .serializers import AddFavoriteSerializer, MovieInfoSerializer, MovieSearchSerializer, MovieSerializer, UserId, UserloginSerializer
 from rest_framework.response import Response
 
 from django.core.validators import validate_email
@@ -22,6 +22,10 @@ from argon2.exceptions import VerifyMismatchError
 import jwt
 
 from django.db.utils import IntegrityError
+
+from django.db.models import FilteredRelation
+
+from django.db.models import F
 # Create your views here.
 
 class UserRegister(APIView):
@@ -89,9 +93,20 @@ class UserLogin(APIView):
         
         
 
-def userlogout(request):
-    #jwt_required
-    pass
+class UserLogout(APIView):
+    def post(self,request):
+        access_token=request.headers.get('Authorization',None)
+        if access_token is not None:
+            response = Response()
+            
+            response.delete_cookie('jwt')
+            
+            response.data={
+                'result':'로그아웃 되었습니다.'
+            }
+            
+            return response
+        
 
 class MovieList(APIView):
     def get(self,request):
@@ -152,16 +167,53 @@ class MovieInfo(APIView):
         
         return JsonResponse({'영화정보':movie_info_2})
 
-def addfavorite(request):
-    #jwt_required
-    pass
+class Addfavorite(APIView):
+    def post(self,request,movie_id):
+        access_token=request.headers.get('Authorization',None)
+        
+        SECRET = 'secret'
+        
+        payload=jwt.decode(access_token,SECRET,algorithms='HS256')
+        
+        user_id=payload.get('id',None)
+        
+        try:
+            Favorite.objects.create(user_id= user_id, movie_id = movie_id)
+        except IntegrityError:
+            return Response({'이미 이 영화는 즐겨찾기 하였습니다.'})
+        return Response({'result':'추가완료'})
+        
+        
 
-def favoritelist(request):
-    #jwt_required
-    pass
+class Favoritelist(APIView):
+    def get(self,request):
+        access_token=request.headers.get('Authorization',None)
+        
+        SECRET = 'secret'
+        
+        payload=jwt.decode(access_token,SECRET,algorithms='HS256')
+        
+        user_id=payload.get('id',None)
+        
+        offset = request.GET['offset']
+        limit = request.GET['limit']
+        
+        m_f= Favorite.objects.annotate(favorite_id=F('id')).select_related('movie').select_related('user').filter(user_id=user_id)[int(offset):int(limit)]
+        serializer = AddFavoriteSerializer(m_f,many=True)
+        return Response({'count':len(serializer.data),'result':serializer.data})
 
-def deletefavorite(request):
-    #jwt_required
-    pass
+class Deletefavorite(APIView):
+    def delete(self,request , movie_id):
+        access_token=request.headers.get('Authorization',None)
+        
+        SECRET = 'secret'
+        
+        payload=jwt.decode(access_token,SECRET,algorithms='HS256')
+        
+        user_id=payload.get('id',None)
+        
+        model=Favorite.objects.filter(movie_id=movie_id,user_id=user_id)
+        model.delete()
+        return Response({'result':'삭제'})
 
 
